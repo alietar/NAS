@@ -1,0 +1,100 @@
+{
+  "gns_auto_config": {
+    "enable": true,
+    "host": "127.0.0.1",
+    "port": "3080",
+    "project_name": "Test_2_AS_OSPF_Comparaison",
+    "create_routers": true,
+    "create_links": true,
+    "arrange_automagically": true,
+    "auto_fetch_router_infos": true,
+    "auto_create_address": {
+      "physical": true,
+      "Loopback": true
+    }
+  },
+
+  "write" : true,
+
+  "as": [
+    { "asn": 1, "internal_protocol": "OSPF" },
+    { "asn": 2, "internal_protocol": "OSPF" }
+
+  ],
+
+  "routers": [
+    { "name": "A1",  "asn": 1 },
+    { "name": "A2",  "asn": 1 },
+    { "name": "A3",  "asn": 1 },
+    { "name": "A4",  "asn": 1 },
+
+    { "name": "B1",  "asn": 2 },
+    { "name": "B2",  "asn": 2 },
+    { "name": "B3",  "asn": 2 },
+    { "name": "B4",  "asn": 2 }
+  ],
+
+  "links": [
+    {
+      "from": "A1",
+      "to": "A2",
+      "interface_from": "g1/0",
+      "interface_to": "g1/0",
+      "ospf_cost": { "from": 10, "to": 10 }
+    },
+    {
+      "from": "A2",
+      "to": "A3",
+      "interface_from": "g2/0",
+      "interface_to": "g1/0",
+      "ospf_cost": { "from": 10, "to": 10 }
+    },
+    {
+      "from": "A3",
+      "to": "A4",
+      "interface_from": "g2/0",
+      "interface_to": "g1/0",
+      "ospf_cost": { "from": 10, "to": 10 }
+    },
+    {
+      "from": "A4",
+      "to": "A1",
+      "interface_from": "g2/0",
+      "interface_to": "g2/0",
+      "ospf_cost": { "from": 100, "to": 100 }
+    },
+
+    {
+      "from": "B1",
+      "to": "B2",
+      "interface_from": "g1/0",
+      "interface_to": "g1/0",
+      "ospf_cost": { "from": 10, "to": 10 }
+
+    },
+    {
+      "from": "B2",
+      "to": "B3",
+      "interface_from": "g2/0",
+      "interface_to": "g1/0",
+      "ospf_cost": { "from": 10, "to": 10 }
+
+    },
+    {
+      "from": "B3",
+      "to": "B4",
+      "interface_from": "g2/0",
+      "interface_to": "g1/0",
+      "ospf_cost": { "from": 10, "to": 10 }
+
+    },
+    {
+      "from": "B4",
+      "to": "B1",
+      "interface_from": "g2/0",
+      "interface_to": "g2/0",
+      "ospf_cost": { "from": 10, "to": 10 }
+
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+telnetlib3
+rich
+click
+pydantic==1.9.2
+gns3fy==0.8.0
