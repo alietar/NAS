@@ -5,6 +5,10 @@ import typing
 import log
 import telnet
 
+class IPVersion(Enum):
+    IPV4 = "ipv4"
+    IPV6 = "ipv6"
+
 class Router:
     def __init__(self, name: str, asn: int, a_s: AS, host, port, id: str = "", write:bool =False):
         self.name: str = name

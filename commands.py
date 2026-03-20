@@ -1,79 +1,121 @@
+from utils import IPVersion
+
+
 def base_router_config(name):
     return [
         "enable",
         "configure terminal",
         f"hostname {name}",
-        "ipv6 unicast-routing"
     ]
 
 
-def address_config(interface, address):
-    return [
-        f"interface {interface}",
-        "ipv6 enable",
-        f"ipv6 address {address}",
+def ipv6_unicast_routing():
+    return "ipv6 unicast-routing"
+
+
+def address_config(interface, address, ip_version: IPVersion):
+    cmds = [
+        f"interface {interface}" ]
+    if ip_version == IPVersion.IPV4:
+        cmds += [
+            f"ip address {address}",
+        ]
+    else:
+        cmds += [
+            "ipv6 enable",
+            f"ipv6 address {address}",
+        ]
+    
+    cmds += [
         "no shutdown",
         "exit"
     ]
 
-def loopback_config(address, protocol, process):
-    cmds = address_config("Loopback0", address)[:-2]
+    return cmds
 
-    if protocol == "ospf":
-        cmds += [
-            f"ipv6 ospf {process} area 0",
-            "exit"
-        ]
 
-    elif protocol == "rip":
-        process = "RIP_AS"
-        cmds += [
-            f"ipv6 RIP {process} enable",
-            "exit"
-        ]
+def loopback_config(address, protocol, process, ip_version: IPVersion):
+    cmds = address_config("Loopback0", address, ip_version)[:-2]
+
+    ##### WARNING!! Did not implement RIP in IPv4
+    if ip_version == IPVersion.IPV4:
+        if protocol == "ospf":
+            cmds += [
+                f"router ospf {process}",
+                f"network {address.split(" ")[0]} 0.0.0.0 area 0",
+                "exit"
+            ]
+
+        if protocol == "rip":
+            print("WARNING!! Did not implement RIP in IPv4")
+    else:
+        if protocol == "ospf":
+            cmds += [
+                f"ipv6 ospf {process} area 0",
+                "exit"
+            ]
+
+        elif protocol == "rip":
+            process = "RIP_AS"
+            cmds += [
+                f"ipv6 RIP {process} enable",
+                "exit"
+            ]
 
     return cmds
 
-def rip_config(address, interface, name):
-    process_name = "RIP_AS"
-    conf = []
-    # conf += baseRouterConfig(name)
-    # conf += addressConfig(interface,address)
-    conf += [
-        # f"ipv6 router rip {process_name}",
-        # f"interface {interface}",
-        # "exit",
-        f"interface {interface}",
-        f"ipv6 rip {process_name} enable",
-        "exit"
-    ]
 
-    return conf
+def rip_config(address, interface, name, ip_version: IPVersion):
+    cmds = []
 
-
-def ospf_config(address, interface, name, area_nb, cost=None):
-    conf = []
-    process_id = int(name[1:])
-    # conf += baseRouterConfig(name)
-    # conf += addressConfig(interface,address)
-
-    conf += [
-        f"ipv6 router ospf {process_id}",
-        f"router-id {process_id}.{process_id}.{process_id}.{process_id}",
-        "exit",
-        f"interface {interface}",
-        f"ipv6 ospf {process_id} area {area_nb}",
+    ##### WARNING!! Did not implement RIP in IPv4
+    if ip_version == IPVersion.IPV4:
+        print("WARNING!! Did not implement RIP in IPv4")
+    else:
+        process_name = "RIP_AS"
+        # conf += baseRouterConfig(name)
+        # conf += addressConfig(interface,address)
+        cmds += [
+            # f"ipv6 router rip {process_name}",
+            # f"interface {interface}",
+            # "exit",
+            f"interface {interface}",
+            f"ipv6 rip {process_name} enable",
+            "exit"
         ]
 
+    return cmds 
+
+
+def ospf_config(address, interface, name, area_nb, ip_version: IPVersion, cost=None):
+    cmds = []
+    process_id = int(name[1:])
+
+    if ip_version == IPVersion.IPV4:
+        cmds += [ f"router ospf {process_id}" ]
+    else:
+        cmds += [ f"ipv6 router ospf {process_id}" ]
+
+    cmds += [
+        f"router-id {process_id}.{process_id}.{process_id}.{process_id}",
+        "exit",
+        f"interface {interface}"
+    ]
+
+    if ip_version == IPVersion.IPV4:
+        cmds += [ f"ip ospf {process_id} area {area_nb}" ]
+    else:
+        cmds += [ f"ipv6 ospf {process_id} area {area_nb}" ]
+
     if cost is not None:
-        conf.append(f"ipv6 ospf cost {int(cost)}")
+        if ip_version == IPVersion.IPV4:
+            cmds += [ f"ip ospf cost {int(cost)}" ]
+        else:
+            cmds += [ f"ipv6 ospf cost {int(cost)}" ]
     
-    conf.append("exit")
+    cmds += [ "exit" ]
     
-
-    return conf
-
-
+    return cmds
    #"redistribute connected" à activer si on veut partager tous les sous reseaux auxquels on appartient, ce qui n'est pas le cas tout le temps :)
 
 
@@ -81,15 +123,15 @@ def enter_bgp_config(asn):
     return [ f"router bgp {asn}" ]
 
 
-def i_bgp_neighbor(other_ip, asn, loopback_interface_name, next_hope_self=False):
+def i_bgp_neighbor(other_ip, asn, loopback_interface_name, ip_version: IPVersion, next_hope_self=False):
     cmds = [
         f"neighbor {other_ip} remote-as {asn}",
         f"neighbor {other_ip} update-source {loopback_interface_name}",
-        f"address-family ipv6 unicast",
+        f"address-family {ip_version.value} unicast",
         f"neighbor {other_ip} activate",
         f"neighbor {other_ip} send-community both"]
     
-    if next_hop_self:
+    if next_hope_self:
         cmds.append(f"neighbor {other_ip} next-hop-self")
 
     cmds += ["exit-address-family"]
@@ -97,37 +139,40 @@ def i_bgp_neighbor(other_ip, asn, loopback_interface_name, next_hope_self=False)
     return cmds
 
 
-def bgp_config(router_id, as_nb):
-    return [
+def bgp_config(router_id, as_nb, ip_version: IPVersion):
+    cmds =[
         f"router bgp {as_nb}", # Enters BGP configuration
-        f"bgp router-id {router_id}.{router_id}.{router_id}.{router_id}",
-        f"no bgp default ipv4-unicast",
-        f"exit"
-    ]
+        f"bgp router-id {router_id}.{router_id}.{router_id}.{router_id}" ]
+    
+    if ip_version == IPVersion.IPV6:
+        cmds += [ "no bgp default ipv4-unicast" ]
 
-def bgp_advertise_network(as_nb, prefix):
+    cmds += [ "exit" ]
+
+    return cmds
+
+
+def bgp_advertise_network(as_nb, prefix, ip_version: IPVersion):
     return [
         f"router bgp {as_nb}",
-        "address-family ipv6 unicast",
+        f"address-family {ip_version.value} unicast",
         f"network {prefix}",
         "exit-address-family",
         "exit",
     ]
 
 
-
-def e_bgp_neighbor_config(as_nb, neighbor_ip, neighbor_as_nb):
+def e_bgp_neighbor_config(as_nb, neighbor_ip, neighbor_as_nb, ip_version: IPVersion):
     return [
         f"router bgp {as_nb}", # Enters BGP configuration
         f"neighbor {neighbor_ip} remote-as {neighbor_as_nb}", # Enters neighbor config
-        f"address-family ipv6 unicast",
+        f"address-family {ip_version.value} unicast",
         f"neighbor {neighbor_ip} activate",
         f"exit-address-family", ### !!! Maybe is useless because of the end command
         f"exit"]
 
 
-
-def redistribute_iBGP(as_number, protocol, process_id): ## à faire que sur les routeurs de bordure pour annoncer les routes à BGP
+def redistribute_iBGP(as_number, protocol, process_id, ip_version: IPVersion): ## à faire que sur les routeurs de bordure pour annoncer les routes à BGP
     """
     Redistribue un IGP (OSPF ou RIP) dans BGP 
     """
@@ -135,20 +180,20 @@ def redistribute_iBGP(as_number, protocol, process_id): ## à faire que sur les 
 
     return [
         f"router bgp {as_number}",
-        "address-family ipv6 unicast",
+        f"address-family {ip_version.value} unicast",
         f"redistribute {protocol} {process_id}",
         "exit-address-family",
         "exit"
     ]
 
 
-def next_hop_self(as_number, neighbors):
+def next_hop_self(as_number, neighbors, ip_version: IPVersion):
     if isinstance(neighbors, str):
         neighbors = [neighbors]
 
     cmds = [
         f"router bgp {as_number}",
-        "address-family ipv6 unicast",
+        f"address-family {ip_version.value} unicast",
     ]
     for ip in neighbors:
         cmds.append(f"neighbor {ip} next-hop-self")
@@ -169,11 +214,11 @@ def next_hop_self(as_number, neighbors):
 
 
 
-def create_access_list(address_blocked_list, name_acl, deny):     #deny = true => blocked address  deny = false => route autorisee
+def create_access_list(address_blocked_list, name_acl, deny, ip_version: IPVersion):     #deny = true => blocked address  deny = false => route autorisee
     conf = [
         "enable",
         "configure terminal",
-        f"ipv6 access-list {name_acl} "
+        f"{ip_version.value} access-list {name_acl} "
            ]
     for dico in address_blocked_list:
         for address in dico["for_who"]:
@@ -208,7 +253,7 @@ def create_access_list(address_blocked_list, name_acl, deny):     #deny = true =
 
 #     return conf
 
-def create_route_map(map_tag, sequence_number=10, name_acl=None, deny=False, community=None, community_list=None, local_pref=None):
+def create_route_map(map_tag, ip_version: IPVersion, sequence_number=10, name_acl=None, deny=False, community=None, community_list=None, local_pref=None):
     conf = []
 
     action = "deny" if deny else "permit"
@@ -216,7 +261,7 @@ def create_route_map(map_tag, sequence_number=10, name_acl=None, deny=False, com
     conf.append(f"route-map {map_tag} {action} {sequence_number}")
 
     if name_acl:
-        conf.append(f"match ipv6 address {name_acl}")
+        conf.append(f"match {ip_version.value} address {name_acl}")
 
     if community:
         if deny:
@@ -239,11 +284,11 @@ def create_route_map(map_tag, sequence_number=10, name_acl=None, deny=False, com
     return conf
 
 
-def apply_route_map(address, map_tag, as_number, entry=True):
+def apply_route_map(address, map_tag, as_number, ip_version: IPVersion, entry=True):
     conf = []
     conf += [
         f"router bgp {as_number}",
-        "address-family ipv6 unicast"
+        f"address-family {ip_version.value} unicast"
              ]
     if entry:
         conf.append(f"neighbor {address} route-map {map_tag} in")
@@ -266,10 +311,10 @@ def create_community_list(name, community, permit=True):
     ]
 
 
-def send_community(as_nb, neighbor_addr):
+def send_community(as_nb, neighbor_addr, ip_version: IPVersion):
     return [
         f"router bgp {as_nb}",
-        "address-family ipv6 unicast",
+        f"address-family {ip_version.value} unicast",
         f"neighbor {neighbor_addr} send-community both",
         "exit-address-family",
         "exit",
@@ -284,12 +329,3 @@ def send_community(as_nb, neighbor_addr):
 ## Je fais un premier create_route_map puis apply_route_map 
 # qui tag toutes les routes. Après je créé la community-list lié 
 # avec le numéro de community puis j'applique la règle que je veux
-
-
-
-    
-
-
-
-
-

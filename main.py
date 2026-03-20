@@ -27,8 +27,6 @@ def main(intentfile):
     console.print("[b][blue]Cisco routers configuration tool[/b][/blue]")
     console.print(f"Intent file is [b]{intentfile}[/b]")
 
-    cmds = {}
-    adress = {}
 
     ### Reading the intent file
     intents = read_intents(intentfile)
@@ -36,7 +34,17 @@ def main(intentfile):
 
     ### Check if we use gnsfy
     use_gnsfy = False    
-    gns_config: dict[str, typing.Any] = intents.get("gns_auto_config")
+    gns_config: dict[str, typing.Any] = intents.get("gns_auto_config", { "enable": False })
+    
+    
+    ### Register choosen IP version
+    if intents.get("ip_version") == "ipv4":
+        ip_version = IPVersion.IPV4
+    elif intents.get("ip_version") == "ipv6":
+        ip_version = IPVersion.IPV6
+    else:
+        log.fatal_error(f"Invalid config for IP version", Exception(f"{intents.get("ip_version")} is not a valid ip version, use ipv4 or ipv6.")) 
+
 
 
     ## check if there is enough addresses for the manual way to give addresses
@@ -168,19 +176,19 @@ def main(intentfile):
 
         # Configure the interface for both routers of the link
         if cond_creation_address:
-            addr_a, addr_b = compute_ip_address(router_a, router_b)
+            addr_a, addr_b = compute_ip_address(router_a, router_b, ip_version)
         else:
             addr_a, addr_b = intents["address_pool"]["physical"][cpt_link][0], intents["address_pool"]["physical"][cpt_link][1]
 
-        configure_one_interface(router_a, router_b, interface_a, addr_a, addr_b, cost_from)
-        configure_one_interface(router_b, router_a, interface_b, addr_b, addr_a, cost_to)
+        configure_one_interface(router_a, router_b, interface_a, addr_a, addr_b, ip_version, cost_from)
+        configure_one_interface(router_b, router_a, interface_b, addr_b, addr_a, ip_version, cost_to)
         
         cpt_link +=1
 
 
     ### Enable BGP on every router
     for name, r in routers.items():
-        r.append_cmds(commands.bgp_config(r.id, r.asn))
+        r.append_cmds(commands.bgp_config(r.id, r.asn, ip_version))
 
 
     ##### iBGP config
@@ -191,7 +199,7 @@ def main(intentfile):
         
         for name, r in a_s.routers.items():
             if gns_config.get("auto_create_address", False) and gns_config["auto_create_address"].get("Loopback", False):
-                loopback_addr = compute_loopback_address(name, asn)
+                loopback_addr = compute_loopback_address(name, asn, ip_version)
 
             else:
                 loopback_addr = intents["address_pool"]["Loopback"][cpt]
@@ -200,7 +208,8 @@ def main(intentfile):
             r.append_cmds(commands.loopback_config(
                 loopback_addr,
                 a_s.internal_protocol,
-                r.id))
+                r.id,
+                ip_version))
             
             cpt += 1
 
@@ -213,12 +222,16 @@ def main(intentfile):
                 if name_other == name:
                     continue
 
-                other_ip_without_mask = remove_ipv6_mask(r_other.interfaces["Loopback0"][0])
+                if ip_version == IPVersion.IPV4:
+                    other_ip_without_mask = remove_ipv4_mask(r_other.interfaces["Loopback0"][0])
+                else:
+                    other_ip_without_mask = remove_ipv6_mask(r_other.interfaces["Loopback0"][0])
 
                 r.append_cmds(commands.i_bgp_neighbor(
                     other_ip_without_mask,
                     asn,
                     "Loopback0",
+                    ip_version,
                     # Next hop self is necessary for the internal routers to
                     # know where to route their packets going outside the AS
                     next_hope_self=r.is_border
@@ -235,16 +248,16 @@ def main(intentfile):
             else:
                 process_id = "RIP_AS"
 
-            r.append_cmds(commands.redistribute_iBGP(asn, a_s.internal_protocol, process_id))
+            r.append_cmds(commands.redistribute_iBGP(asn, a_s.internal_protocol, process_id, ip_version))
 
         ### Route tagging
         # rel means a relationship
         for rel in a_s.relationships:
             for link in rel.links:
-                tag_community(intents, asn, link, rel.type)
+                tag_community(intents, asn, link, rel.type, ip_version)
             
         ### appliquer les conditions en fonction de la relation entre les AS
-        apply_community_conditions(a_s)
+        apply_community_conditions(a_s, ip_version)
 
 
     ### Start all router on GNS
@@ -269,7 +282,7 @@ def main(intentfile):
 
 
 
-def tag_community(intents, asn: int, link: RelationshipLink, type: str):
+def tag_community(intents, asn: int, link: RelationshipLink, type: str, ip_version: IPVersion):
     r = link.from_r
     constants = intents["community_constants"][type]
 
@@ -278,8 +291,9 @@ def tag_community(intents, asn: int, link: RelationshipLink, type: str):
 
     r.append_cmds(commands.create_route_map(
         constants["route_map_tag"],
+        ip_version,
         community=value_community,
-        local_pref=constants["local_pref"]
+        local_pref=constants["local_pref"],
     ))
 
     ### Aplying the route map for the routes incoming
@@ -289,6 +303,7 @@ def tag_community(intents, asn: int, link: RelationshipLink, type: str):
         neighbor_ip_without_mask,
         constants["route_map_tag"],
         asn,
+        ip_version,
         True ### Need to verify
     ))
 
@@ -305,7 +320,7 @@ def read_ospf_cost(link):
 
 
 
-def apply_community_conditions(a_s: AS):
+def apply_community_conditions(a_s: AS, ip_version: IPVersion):
     block_list = []
 
     # If AS is client add PROVIDER to block list
@@ -323,6 +338,7 @@ def apply_community_conditions(a_s: AS):
         if block_list:
             r.append_cmds(commands.create_route_map(
                 "BLOCK_UPSTREAM",
+                ip_version,
                 deny=True,
                 community_list=" ".join(block_list),
             ))
@@ -331,7 +347,7 @@ def apply_community_conditions(a_s: AS):
 
         for rel, link in a_s.get_relationships_from(r):
             if rel.type in ("client", "peer") and block_list:
-                r.append_cmds(commands.apply_route_map(remove_ipv6_mask(link.to_ip), "BLOCK_UPSTREAM", a_s.asn, entry=False))
+                r.append_cmds(commands.apply_route_map(remove_ipv6_mask(link.to_ip), "BLOCK_UPSTREAM", a_s.asn, ip_version, entry=False))
 
 
 
@@ -350,10 +366,10 @@ def write_configs(routers):
 
 
 
-def configure_one_interface(r_a: Router, r_b: Router, interface_a: str, addr_a:str, addr_b:str, opsf_cost=None):
+def configure_one_interface(r_a: Router, r_b: Router, interface_a: str, addr_a:str, addr_b:str, ip_version: IPVersion, opsf_cost=None):
     log.info(f"Configuring {interface_a} on {r_a.name}")
     
-    r_a.append_cmds(commands.address_config(interface_a, addr_a))
+    r_a.append_cmds(commands.address_config(interface_a, addr_a, ip_version))
 
     r_a.interfaces[interface_a].append(addr_a)
     
@@ -363,28 +379,34 @@ def configure_one_interface(r_a: Router, r_b: Router, interface_a: str, addr_a:s
 
         if protocol == "rip":
             log.info(f"Enabling RIP")
-            r_a.append_cmds(commands.rip_config(addr_a, interface_a, r_a.name))
+            r_a.append_cmds(commands.rip_config(addr_a, interface_a, r_a.name, ip_version))
 
         elif protocol == "ospf":
             log.info(f"Enabling OSPF")
-            r_a.append_cmds(commands.ospf_config(addr_a, interface_a, r_a.name, 0, opsf_cost))
+            r_a.append_cmds(commands.ospf_config(addr_a, interface_a, r_a.name, 0, ip_version, opsf_cost))
 
     # Inter as protocol AKA eBGP
     else: # Different as
         log.info(f"Enabling eBGP")
 
         r_a.is_border = True
-
-        addr_a_without_mask = remove_ipv6_mask(addr_a)
-        addr_b_without_mask = remove_ipv6_mask(addr_b)
         
-        prefix_a = str(ipaddress.IPv6Interface(addr_a).network)
+        if ip_version == IPVersion.IPV4:
+            addr_a_without_mask = remove_ipv4_mask(addr_a)
+            addr_b_without_mask = remove_ipv4_mask(addr_b)
 
-        r_a.append_cmds(commands.bgp_advertise_network(r_a.asn, prefix_a))
+            prefix_a = ".".join(addr_a_without_mask.split(".")[:-1]) + ".0" + " mask 255.255.255.0"
+        else:
+            addr_a_without_mask = remove_ipv6_mask(addr_a)
+            addr_b_without_mask = remove_ipv6_mask(addr_b)
+            
+            prefix_a = str(ipaddress.IPv6Interface(addr_a).network)
 
-        r_a.append_cmds(commands.e_bgp_neighbor_config(r_a.asn, addr_b_without_mask, r_b.asn))
+        r_a.append_cmds(commands.bgp_advertise_network(r_a.asn, prefix_a, ip_version))
 
-        r_a.append_cmds(commands.send_community(r_a.asn, addr_b_without_mask))
+        r_a.append_cmds(commands.e_bgp_neighbor_config(r_a.asn, addr_b_without_mask, r_b.asn, ip_version))
+
+        r_a.append_cmds(commands.send_community(r_a.asn, addr_b_without_mask, ip_version))
 
         ### Find the corresponding relationship for this inter-as link
         # Loops through the relationship to see which one has the router
