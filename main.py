@@ -18,6 +18,8 @@ from log import console
 from utils import *
 from display import router_coords_from_intent
 
+from vpn import apply_vpn
+
 
 
 ### CLI Arguments
@@ -204,7 +206,9 @@ def main(intentfile):
             else:
                 loopback_addr = intents["address_pool"]["Loopback"][cpt]
 
-            r.interfaces["Loopback0"].append(loopback_addr)
+            r.interfaces["Loopback0"] = Interface("Loopback0", is_loopback = True)
+            r.interfaces["Loopback0"].add_addr(loopback_addr)
+
             r.append_cmds(commands.loopback_config(
                 loopback_addr,
                 a_s.internal_protocol,
@@ -223,9 +227,9 @@ def main(intentfile):
                     continue
 
                 if ip_version == IPVersion.IPV4:
-                    other_ip_without_mask = remove_ipv4_mask(r_other.interfaces["Loopback0"][0])
+                    other_ip_without_mask = remove_ipv4_mask(r_other.interfaces["Loopback0"].addrs[0])
                 else:
-                    other_ip_without_mask = remove_ipv6_mask(r_other.interfaces["Loopback0"][0])
+                    other_ip_without_mask = remove_ipv6_mask(r_other.interfaces["Loopback0"].addrs[0])
 
                 r.append_cmds(commands.i_bgp_neighbor(
                     other_ip_without_mask,
@@ -258,6 +262,9 @@ def main(intentfile):
             
         ### appliquer les conditions en fonction de la relation entre les AS
         apply_community_conditions(a_s, ip_version)
+
+    
+    apply_vpn(routers, as_list, intents)
 
 
     ### Start all router on GNS
@@ -371,10 +378,12 @@ def configure_one_interface(r_a: Router, r_b: Router, interface_a: str, addr_a:s
     
     r_a.append_cmds(commands.address_config(interface_a, addr_a, ip_version))
 
-    r_a.interfaces[interface_a].append(addr_a)
+    r_a.interfaces[interface_a].add_addr(addr_a)
+    r_a.interfaces[interface_a].neighbor_router = r_b
     
     # Internal protocol setup
     if r_a.asn == r_b.asn: # Same as
+        r_a.interfaces[interface_a].is_internal = True
         protocol = r_a.a_s.internal_protocol
 
         if protocol == "rip":

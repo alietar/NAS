@@ -10,7 +10,7 @@ class IPVersion(Enum):
     IPV6 = "ipv6"
 
 class Router:
-    def __init__(self, name: str, asn: int, a_s: AS, host, port, id: str = "", write:bool =False):
+    def __init__(self, name: str, asn: int, a_s: AS, host, port, id: str = "", write:bool = False):
         self.name: str = name
         self.asn: int = asn
         self.a_s: AS = a_s
@@ -20,12 +20,12 @@ class Router:
 
         self.is_border: bool = False
 
-        self.interfaces: dict[str, list[str]] = {
-            "Loopback0":[],
-            "g1/0": [],
-            "g2/0": [],
-            "g3/0": [],
-            "g4/0": []
+        self.interfaces: dict[str, Interface] = {
+            "Loopback0": Interface("Loopback0"),
+            "g1/0": Interface("g1/0"),
+            "g2/0": Interface("g2/0"),
+            "g3/0": Interface("g3/0"),
+            "g4/0": Interface("g4/0"),
         }
 
         if id == "":
@@ -51,6 +51,18 @@ class Router:
         telnet.run_on_router(self.cmds, self.host, self.port)
 
         log.success(f"Finished config of [b]{self.name}[/]")
+
+
+class Interface:
+    def __init__(self, name:str, is_loopback:bool = False) -> None:
+        self.name = name
+        self.is_loopback = is_loopback
+        self.is_internal = False 
+        self.addrs: list[str] = []
+        self.neighbor_router: Router 
+
+    def add_addr(self, address: str):
+        self.addrs.append(address)
 
 
 class AS:
