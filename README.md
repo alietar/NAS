@@ -2,7 +2,7 @@
   <img src="https://avatars.githubusercontent.com/u/2739187?s=280&v=4" alt="GNS3 Logo" width="100px" />
 </div>
 
-<p align="center">Projet GNS - 3TC Groupe 33</p>
+<p align="center">Projet NAS - 3TC</p>
 
 <div align="center">
   <img alt="Python 3" src="https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54">
@@ -24,7 +24,7 @@
 
 Le but du projet GNS 3 est de développer un outil, dans notre cas en python, capable de configurer automatiquement des routeurs cisco dans le logiciel GNS3.
 
-Notre outil permet de créer rapidement et de façon fiable des réseaux complexes comprenant plusieurs AS avec des relations client-fournisseur ou peer-to-peer, tout en étant en gardant une grande flexibilité.
+Notre outil permet de créer rapidement et de façon fiable des réseaux complexes comprenant plusieurs AS avec des relations client-fournisseur ou peer-to-peer et des vpn, tout en étant en gardant une grande flexibilité.
 
 Concrètement, la configuration du réseau est décrite de façon déléclarative dans un fichier d'intention en json et notre programme traduit cela en commandes impératives rentrées automatiquement dans les routeurs.
 
@@ -40,6 +40,7 @@ Concrètement, la configuration du réseau est décrite de façon déléclarativ
 - RIP ou OSPF en protocole de routage au sein d'une AS
 - OPSF Metrics
 - Relations entre les AS (client-fournisseur, peer-to-peer) grâce aux communty policies
+- VPN : MPLS, LDP, VRF
 
 # Installation
 
