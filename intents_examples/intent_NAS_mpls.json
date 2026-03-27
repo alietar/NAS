@@ -3,7 +3,7 @@
     "enable": true,
     "host": "127.0.0.1",
     "port": "3080",
-    "project_name": "NAS IPv4 Basic",
+    "project_name": "NAS IPv4 MPLS VPN",
     "create_routers": true,
     "create_links": true,
     "arrange_automagically": true,

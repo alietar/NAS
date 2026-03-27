@@ -2,8 +2,8 @@ from __future__ import annotations
 from enum import Enum
 import typing
 
-import log
-import telnet
+import utils.log as log
+import router_connector.telnet as telnet
 
 class IPVersion(Enum):
     IPV4 = "ipv4"

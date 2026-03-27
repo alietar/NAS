@@ -2,9 +2,7 @@
 
 from gns3fy import gns3fy, Project, Node, Link
 
-import datetime
-import time
-
+from utils import log
 
 class GnsProject:
     def __init__(self, ip="http://localhost", port=3080, name="Test project") -> None:

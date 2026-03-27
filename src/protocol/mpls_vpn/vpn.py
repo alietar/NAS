@@ -1,5 +1,5 @@
-from utils import *
-from vpn_commands import *
+from utils.models import *
+from .vpn_commands import *
 
 def apply_vpn(routers: dict[str, Router], as_list: dict[int, AS], intents) -> None:
     vpn_config = intents.get("vpn")
@@ -40,6 +40,3 @@ def apply_vpn(routers: dict[str, Router], as_list: dict[int, AS], intents) -> No
 
             # Enable ldp
             router.append_cmds(ldp_base_config())
-            print(routers[router.name].cmds)
-            
-            

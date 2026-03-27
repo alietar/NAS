@@ -1,8 +1,28 @@
-import telnetlib3.telnetlib as telnetlib
+import multiprocessing
 import time
-import log
+
+import telnetlib3.telnetlib as telnetlib
+
+import utils.log as log
 
 INTERVAL_BETWEEN_CMD: float = 0.03
+
+def write_configs_parallel(routers):
+    processes = []
+
+    with log.console.status("[blue] Sending commands to routers") as status:
+        for r in routers.values():
+            if r.host is None or r.port is None:
+                log.fatal_error(f"Error on config for {r.name}", Exception("Can't get host/port in intents or GNS"))
+
+            log.info(f"Starting Telnet to [b]{r.name}[/] on {r.host}://{r.port}")
+        
+            processes.append(multiprocessing.Process(target=r.send_cmds))
+            processes[-1].start()
+
+        for i in range(len(processes)):
+            processes[i].join()
+            
 
 def run_on_router(cmds, host, port):
     routerSocket = RouterSocket(host=host, port=port)

@@ -1,0 +1,7 @@
+[project]
+name = "intentify"
+version = "0.0.1"
+description = "Tool to configure Cisco router from an intent file"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = ["telnetlib3", "rich", "click", "pydantic==1.9.2", "gns3fy==0.8.0"]

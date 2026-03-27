@@ -1,4 +1,5 @@
-from utils import *
+from .models import *
+
 def compute_ip_address(router_a: Router, router_b: Router, ip_address: IPVersion):
     if router_a.asn == router_b.asn: # Same AS
         if ip_address == IPVersion.IPV4:
