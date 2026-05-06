@@ -2,14 +2,13 @@
   <img src="https://avatars.githubusercontent.com/u/2739187?s=280&v=4" alt="GNS3 Logo" width="100px" />
 </div>
 
-<p align="center">Projet NAS - 3TC</p>
+<p align="center">Projet NAS, gr 33 - 3TC</p>
 
 <div align="center">
   <img alt="Python 3" src="https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54">
   <img alt="Telnet" src="https://img.shields.io/badge/Telnet-grey?style=for-the-badge">
   <img alt="GNS3" src="https://img.shields.io/badge/GNS-v3-7340be?style=for-the-badge">
   <img alt="Cisco" src="https://img.shields.io/badge/cisco_router-%23049fd9.svg?style=for-the-badge&logo=cisco&logoColor=%23ffffff">
-
 </div>
 
 # Sommaire
@@ -22,9 +21,9 @@
 
 # Objectif du projet
 
-Le but du projet GNS 3 est de développer un outil, dans notre cas en python, capable de configurer automatiquement des routeurs cisco dans le logiciel GNS3.
+Le but du projet NAS est de développer un outil d'IaC ([Infrastructure as Code](https://fr.wikipedia.org/wiki/Infrastructure_as_code)), dans notre cas en python, capable de configurer automatiquement des routeurs cisco dans le logiciel GNS3. Le code est basée sur le projet précédent : [GNS](https://github.com/leopoldcst/GNS)
 
-Notre outil permet de créer rapidement et de façon fiable des réseaux complexes comprenant plusieurs AS avec des relations client-fournisseur ou peer-to-peer et des vpn, tout en étant en gardant une grande flexibilité.
+Notre outil permet de créer rapidement et de façon fiable des réseaux complexes comprenant plusieurs AS avec des relations client-fournisseur ou peer-to-peer et des vpn, ainsi que des tunnels MPLS VPN tout en gardant une grande flexibilité.
 
 Concrètement, la configuration du réseau est décrite de façon déléclarative dans un fichier d'intention en json et notre programme traduit cela en commandes impératives rentrées automatiquement dans les routeurs.
 
@@ -40,7 +39,7 @@ Concrètement, la configuration du réseau est décrite de façon déléclarativ
 - RIP ou OSPF en protocole de routage au sein d'une AS
 - OPSF Metrics
 - Relations entre les AS (client-fournisseur, peer-to-peer) grâce aux communty policies
-- VPN : MPLS, LDP, VRF
+- VPN : MPLS, LDP, VRF [pas entièrement implémenté]
 
 # Installation
 
@@ -53,7 +52,7 @@ Concrètement, la configuration du réseau est décrite de façon déléclarativ
 
 ### Dépendances
 
-Il est recommandé d'utiliser un environnement virtuel python pour l'installation des [dépendances](https://github.com/leopoldcst/GNS/blob/main/requirements.txt).
+Il est recommandé d'utiliser un environnement virtuel python pour l'installation des [dépendances](https://github.com/alietar/NAS/blob/main/requirements.txt).
 
 - gns3fy
 - telnetlib3
@@ -62,8 +61,8 @@ Il est recommandé d'utiliser un environnement virtuel python pour l'installatio
 
 ### Téléchargement
 ```bash
-git clone https://github.com/leopoldcst/GNS.git
-cd GNS
+git clone https://github.com/alietar/NAS.git
+cd NAS
 ```
 
 ### Venv et dépendances
