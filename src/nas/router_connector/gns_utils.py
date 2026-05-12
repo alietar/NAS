@@ -1,4 +1,4 @@
-from utils import log, ip_utils
+from ..utils import log, ip_utils
 from .gns_project import GnsProject
 from .display import router_coords_from_intent
 

@@ -1,4 +1,4 @@
-from utils.models import IPVersion
+from .utils.models import IPVersion
 
 def base_router_config(name):
     return [

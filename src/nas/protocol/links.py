@@ -1,9 +1,9 @@
 import ipaddress
 
-from utils.models import *
-import commands
-from utils import log
-from utils import ip_utils
+from ..utils.models import *
+from .. import commands
+from ..utils import log
+from ..utils import ip_utils
 
 def link_config(routers: dict[str, Router], as_list: dict[int, AS], intents, gns_config, ip_version) -> None:
     ### Link and protocol setup

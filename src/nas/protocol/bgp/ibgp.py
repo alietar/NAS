@@ -1,5 +1,5 @@
-import commands 
-from utils.ip_utils import *
+from ... import commands 
+from ...utils.ip_utils import *
     ##### iBGP config
 
 def ibgp_config(routers: dict[str, Router], as_list: dict[int, AS], intents, gns_config, ip_version) -> None:

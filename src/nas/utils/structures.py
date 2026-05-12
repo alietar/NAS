@@ -1,8 +1,7 @@
 import json
 
-from utils import log
-from utils.models import *
-import router_connector
+from ..utils import log
+from ..utils.models import *
 
 def read_intents(path: str) -> tuple[dict[str, typing.Any], dict[str, typing.Any], IPVersion, bool]:
     log.console.print(f"Intent file is [b]{path}[/b]")

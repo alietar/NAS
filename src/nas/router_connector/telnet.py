@@ -3,7 +3,7 @@ import time
 
 import telnetlib3.telnetlib as telnetlib
 
-import utils.log as log
+from ..utils import log
 
 INTERVAL_BETWEEN_CMD: float = 0.03
 

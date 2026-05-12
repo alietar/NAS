@@ -6,18 +6,18 @@ import click
 from rich.pretty import pprint
 
 ### Own libraries
-import router_connector.gns_utils as gns_utils
-import commands as commands
-from utils.ip_utils import *
-import utils.log as log
-from utils.log import console
-from utils.models import *
+from .router_connector import gns_utils
+from . import commands 
+from .utils.ip_utils import *
+from .utils import log
+from .utils.log import console
+from .utils.models import *
 
-from protocol.mpls_vpn.vpn import apply_vpn
-from protocol.bgp.ibgp import ibgp_config
-from protocol.links import link_config
+from .protocol.mpls_vpn.vpn import apply_vpn
+from .protocol.bgp.ibgp import ibgp_config
+from .protocol.links import link_config
 
-import utils.structures as structures
+from .utils import structures
 
 ### CLI Arguments
 @click.command()

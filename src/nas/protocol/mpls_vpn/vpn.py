@@ -1,4 +1,4 @@
-from utils.models import *
+from ...utils.models import *
 from .vpn_commands import *
 
 def apply_vpn(routers: dict[str, Router], as_list: dict[int, AS], intents) -> None:
