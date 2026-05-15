@@ -17,17 +17,19 @@ from .protocol.mpls_vpn.vpn import apply_vpn
 from .protocol.bgp.ibgp import ibgp_config
 from .protocol.links import link_config
 
-from .utils import structures
+from .utils import parser
 
 ### CLI Arguments
 @click.command()
 @click.argument('intentfile', type=click.Path(exists=True, readable=True), default="./intents/intent_2_AS_OSPF_RIP.json")
-def main(intentfile):
+@click.option('-d', '--dry-run', is_flag=True)
+@click.option('-s', '--show-commands', is_flag=True)
+def main(intentfile, dry_run, show_commands):
     console.print("[b][blue]Cisco routers configuration tool[/b][/blue]")
 
     ### --- Intent file reading --- ###
-    intents, gns_config, ip_version, use_gnsfy = structures.read_intents(intentfile)
-    as_list, routers = structures.parse_routers_as(intents)
+    intents, gns_config, ip_version, use_gnsfy = parser.parse_intents(intentfile)
+    as_list, routers = parser.parse_routers_as(intents)
 
     ### --- Config making --- ###
     ## Basic router config
@@ -45,39 +47,46 @@ def main(intentfile):
     ibgp_config(routers, as_list, intents, gns_config, ip_version)
     apply_vpn(routers, as_list, intents)
 
+ 
+    if show_commands:
+        for router in routers.values():
+            log.info(f"Commands on router {router.name}")
+            for cmd in router.cmds:
+                print(cmd)
 
     ### --- GNS --- ###
-    if use_gnsfy:
-        ## Project opening
-        g = gns_utils.open_gns(gns_config)
-    
-        for router in routers.values():
-            ## Router creation
-            if gns_config.get("create_routers", False):
-                gns_utils.create_router(router, g, intents, gns_config.get("arrange"))
+    if not dry_run:
+        if use_gnsfy:
+            ## Project opening
+            g = gns_utils.open_gns(gns_config)
+        
+            for router in routers.values():
+                ## Router creation
+                if gns_config.get("create_routers", False):
+                    gns_utils.create_router(router, g, intents, gns_config.get("arrange"))
 
-            ## Ports
-            if gns_config.get("auto_fetch_router_infos", False):
-                router.port = gns_utils.fetch_ports(router, g)
-                router.host = gns_config.get("ip", "127.0.0.1")
+                ## Ports
+                if gns_config.get("auto_fetch_router_infos", False):
+                    router.port = gns_utils.fetch_ports(router, g)
+                    router.host = gns_config.get("ip", "127.0.0.1")
 
-        ## Links creation
-        if gns_config.get("create_links", False):
-            gns_utils.create_links(intents, g)
+            ## Links creation
+            if gns_config.get("create_links", False):
+                gns_utils.create_links(intents, g)
 
-        ## Start all router on GNS
-        with console.status("[blue] Starting routers (GNS)...") as status:
-            for name in routers.keys():
-                g.routers[name].start()
+            ## Start all router on GNS
+            with console.status("[blue] Starting routers (GNS)...") as status:
+                for name in routers.keys():
+                    g.routers[name].start()
 
-        log.success("Started routers (GNS)")
+            log.success("Started routers (GNS)")
 
-        with console.status("[blue] Waiting 10s for routers to start") as status:
-            time.sleep(10)
+            with console.status("[blue] Waiting 10s for routers to start") as status:
+                time.sleep(10)
 
 
-    ### Telnet sending
-    telnet.write_configs_parallel(routers)
+        ### Telnet sending
+        telnet.write_configs_parallel(routers)
     
     console.print("\n[b][green]Finished![/b][/green]")
 

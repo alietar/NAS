@@ -1,7 +1,7 @@
 from ...utils.models import *
 from .vpn_commands import *
 
-def apply_vpn(routers: dict[str, Router], as_list: dict[int, AS], intents) -> None:
+def apply_vpn(routers: dict[int, Router], as_list: dict[int, AS], intents) -> None:
     vpn_config = intents.get("vpn")
 
     if vpn_config is None:

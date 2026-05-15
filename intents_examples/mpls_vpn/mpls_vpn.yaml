@@ -1,0 +1,129 @@
+gns:
+  enable: true
+  host: 127.0.0.1
+  port: 3080
+  project_name: NAS IPv4 MPLS VPN
+  create_routers: true
+  create_links: true
+  arrange_automagically: true
+  auto_fetch_router_infos: true
+
+project:
+  write: false
+  ip_version: ipv4
+  auto_create_address:
+    physical: true
+    Loopback: true
+
+as:
+  - asn: 1
+    internal_protocol: OSPF
+    bgp_deployement: border
+
+  - asn: 2
+    internal_protocol: OSPF
+    bgp_deployement: border
+
+  - asn: 3
+    internal_protocol: OSPF
+    bgp_deployement: every
+
+  - asn: 4
+    internal_protocol: OSPF
+    bgp_deployement: border
+
+  - asn: 5
+    internal_protocol: OSPF
+    bgp_deployement: border
+
+routers:
+  - name: A1
+    asn: 1
+    id: 1
+  - name: A2
+    asn: 1
+    id: 2
+  - name: B3
+    asn: 2
+    id: 3
+  - name: B4
+    asn: 2
+    id: 4
+  - name: Z5
+    asn: 3
+    id: 5
+  - name: Z6
+    asn: 3
+    id: 6
+  - name: Z7
+    asn: 3
+    id: 7
+  - name: Z8
+    asn: 3
+    id: 8
+  - name: C9
+    asn: 4
+    id: 9
+  - name: C10
+    asn: 4
+    id: 10
+  - name: D11
+    asn: 5
+    id: 11
+  - name: D12
+    asn: 5
+    id: 12
+
+links:
+  - from: 1
+    to: 2
+    interface_from: g1/0
+    interface_to: g2/0
+  - from: 2
+    to: 5
+    interface_from: g1/0
+    interface_to: g2/0
+  - from: 3
+    to: 4
+    interface_from: g1/0
+    interface_to: g2/0
+  - from: 4
+    to: 5
+    interface_from: g1/0
+    interface_to: g3/0
+  - from: 5
+    to: 6
+    interface_from: g1/0
+    interface_to: g2/0
+  - from: 6
+    to: 7
+    interface_from: g1/0
+    interface_to: g2/0
+  - from: 7
+    to: 8
+    interface_from: g1/0
+    interface_to: g1/0
+  - from: 9
+    to: 8
+    interface_from: g1/0
+    interface_to: g2/0
+  - from: 10
+    to: 9
+    interface_from: g1/0
+    interface_to: g2/0
+  - from: 11
+    to: 8
+    interface_from: g1/0
+    interface_to: g3/0
+  - from: 12
+    to: 11
+    interface_from: g1/0
+    interface_to: g2/0
+
+vpn:
+  - client_name: client2
+    client_asn_list: [1, 4]
+    provider_asn: 3
+  - client_name: client1
+    client_asn_list: [2, 5]
+    provider_asn: 3

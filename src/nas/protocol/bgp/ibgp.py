@@ -2,15 +2,15 @@ from ... import commands
 from ...utils.ip_utils import *
     ##### iBGP config
 
-def ibgp_config(routers: dict[str, Router], as_list: dict[int, AS], intents, gns_config, ip_version) -> None:
+def ibgp_config(routers: dict[int, Router], as_list: dict[int, AS], intents, gns_config, ip_version) -> None:
     cpt = 0
     for asn, a_s in as_list.items():
         ### Adding loopback address
         # We first need to enable the loopback interface on all the routers before configuring iBGP
         
-        for name, r in a_s.routers.items():
-            if gns_config.get("auto_create_address", False) and gns_config["auto_create_address"].get("Loopback", False):
-                loopback_addr = compute_loopback_address(name, asn, ip_version)
+        for id, r in a_s.routers.items():
+            if intents["project"].get("auto_create_address", {}).get("Loopback", False):
+                loopback_addr = compute_loopback_address(id, asn, ip_version)
 
             else:
                 loopback_addr = intents["address_pool"]["Loopback"][cpt]

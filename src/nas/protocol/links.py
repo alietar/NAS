@@ -5,10 +5,11 @@ from .. import commands
 from ..utils import log
 from ..utils import ip_utils
 
-def link_config(routers: dict[str, Router], as_list: dict[int, AS], intents, gns_config, ip_version) -> None:
+def link_config(routers: dict[int, Router], as_list: dict[int, AS], intents, gns_config, ip_version) -> None:
     ### Link and protocol setup
     cpt_link = 0
-    cond_creation_address = intents["gns_auto_config"]["auto_create_address"]["physical"]
+    cond_creation_address = intents["project"]["auto_create_address"]["physical"]
+
     for link in intents["links"]:
         router_a: Router = routers[link["from"]]
         router_b: Router = routers[link["to"]]
