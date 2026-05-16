@@ -15,7 +15,7 @@ from .utils.models import *
 
 from .protocol.mpls_vpn.vpn import apply_vpn
 from .protocol.bgp.ibgp import ibgp_config
-from .protocol.links import link_config
+from .protocol.links import link_config, configure_loopbacks
 
 from .utils import parser
 
@@ -44,6 +44,7 @@ def main(intentfile, dry_run, show_commands):
     for name, r in routers.items():
         r.append_cmds(commands.bgp_config(r.id, r.asn, ip_version))
 
+    configure_loopbacks(routers, intents, ip_version)
     ibgp_config(routers, as_list, intents, gns_config, ip_version)
     apply_vpn(routers, as_list, intents)
 

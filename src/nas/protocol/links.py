@@ -1,9 +1,10 @@
 import ipaddress
+from typing import Any
 
 from ..utils.models import *
 from .. import commands
 from ..utils import log
-from ..utils import ip_utils
+from ..utils import ip_utils, log
 
 def link_config(routers: dict[int, Router], as_list: dict[int, AS], intents, gns_config, ip_version) -> None:
     ### Link and protocol setup
@@ -94,3 +95,23 @@ def configure_one_interface(r_a: Router, r_b: Router, interface_a: str, addr_a:s
                     r_b,
                     addr_b
                 ))
+
+
+def configure_loopbacks(routers: dict[int, Router], intents: dict[str, Any], ip_version: IPVersion):
+    for r in routers.values():
+        ### Adding loopback address
+        # We first need to enable the loopback interface on all the routers before configuring iBGP
+        if intents["project"].get("auto_create_address", {}).get("Loopback", False):
+            loopback_addr = ip_utils.compute_loopback_address(r.id, r.asn, ip_version)
+
+        else:
+            loopback_addr = intents["address_pool"]["Loopback"][r.id]
+
+        r.interfaces["Loopback0"] = Interface("Loopback0", is_loopback = True)
+        r.interfaces["Loopback0"].add_addr(loopback_addr)
+
+        r.append_cmds(commands.loopback_config(
+            loopback_addr,
+            r.a_s.internal_protocol,
+            r.id,
+            ip_version))

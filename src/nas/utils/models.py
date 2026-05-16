@@ -60,6 +60,13 @@ class Interface:
     def add_addr(self, address: str):
         self.addrs.append(address)
 
+    def parse_commands(self) -> list[str]:
+        cmds = [
+            f"interface {self.name}" 
+        ]
+
+        return cmds
+
 
 class AS:
     def __init__(self, asn: int, internal_protocol: str, bgp_deployement: str):

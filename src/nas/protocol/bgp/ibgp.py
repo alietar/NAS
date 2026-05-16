@@ -3,36 +3,18 @@ from ...utils.ip_utils import *
     ##### iBGP config
 
 def ibgp_config(routers: dict[int, Router], as_list: dict[int, AS], intents, gns_config, ip_version) -> None:
-    cpt = 0
     for asn, a_s in as_list.items():
-        ### Adding loopback address
-        # We first need to enable the loopback interface on all the routers before configuring iBGP
-        
-        for id, r in a_s.routers.items():
-            if intents["project"].get("auto_create_address", {}).get("Loopback", False):
-                loopback_addr = compute_loopback_address(id, asn, ip_version)
-
-            else:
-                loopback_addr = intents["address_pool"]["Loopback"][cpt]
-
-            r.interfaces["Loopback0"] = Interface("Loopback0", is_loopback = True)
-            r.interfaces["Loopback0"].add_addr(loopback_addr)
-
-            r.append_cmds(commands.loopback_config(
-                loopback_addr,
-                a_s.internal_protocol,
-                r.id,
-                ip_version))
-            
-            cpt += 1
-
-
         ### Full mesh iBGP sessions
-        for name, r in a_s.routers.items():
+        for id, r in a_s.routers.items():
+            no_bgp = a_s.bgp_deployement == "border" and not r.is_border
+
+            if no_bgp:
+                continue
+
             r.append_cmds(commands.enter_bgp_config(asn))
 
-            for name_other, r_other in a_s.routers.items():
-                if name_other == name:
+            for id_other, r_other in a_s.routers.items():
+                if no_bgp or id_other == id:
                     continue
 
                 if ip_version == IPVersion.IPV4:
