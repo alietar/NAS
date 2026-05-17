@@ -21,13 +21,7 @@ class Router:
 
         self.is_border: bool = False
 
-        self.interfaces: dict[str, Interface] = {
-            "Loopback0": Interface("Loopback0"),
-            "g1/0": Interface("g1/0"),
-            "g2/0": Interface("g2/0"),
-            "g3/0": Interface("g3/0"),
-            "g4/0": Interface("g4/0"),
-        }
+        self.interfaces: dict[str, Interface] = {}
 
         self.cmds: list[str] = []
         self.a_s: AS 
@@ -55,7 +49,8 @@ class Interface:
         self.is_loopback = is_loopback
         self.is_internal = False 
         self.addrs: list[str] = []
-        self.neighbor_router: Router 
+        self.neighbor_router: Router|None = None 
+        self.vrf: str|None = None
 
     def add_addr(self, address: str):
         self.addrs.append(address)
@@ -69,10 +64,11 @@ class Interface:
 
 
 class AS:
-    def __init__(self, asn: int, internal_protocol: str, bgp_deployement: str):
+    def __init__(self, asn: int, internal_protocol: str, bgp_deployement: str, redistribute_internal: bool):
         self.asn: int = asn
         self.internal_protocol: str = internal_protocol
         self.bgp_deployement: str = bgp_deployement
+        self.redistribute_internal: bool = redistribute_internal
 
         if bgp_deployement != "every" and bgp_deployement != "border":
             log.fatal_error(f"Invalid config for AS n°{asn}", Exception("bgp deployement is not 'every' or 'border'")) 

@@ -46,7 +46,6 @@ def configure_one_interface(r_a: Router, r_b: Router, interface_a: str, addr_a:s
     r_a.append_cmds(commands.address_config(interface_a, addr_a, ip_version))
 
     r_a.interfaces[interface_a].add_addr(addr_a)
-    r_a.interfaces[interface_a].neighbor_router = r_b
     
     # Internal protocol setup
     if r_a.asn == r_b.asn: # Same as
@@ -55,11 +54,11 @@ def configure_one_interface(r_a: Router, r_b: Router, interface_a: str, addr_a:s
 
         if protocol == "rip":
             log.info(f"Enabling RIP")
-            r_a.append_cmds(commands.rip_config(addr_a, interface_a, r_a.name, ip_version))
+            r_a.append_cmds(commands.rip_config(addr_a, interface_a, r_a.id, ip_version))
 
         elif protocol == "ospf":
             log.info(f"Enabling OSPF")
-            r_a.append_cmds(commands.ospf_config(addr_a, interface_a, r_a.name, 0, ip_version, opsf_cost))
+            r_a.append_cmds(commands.ospf_config(addr_a, interface_a, r_a.id, 0, ip_version, opsf_cost))
 
     # Inter as protocol AKA eBGP
     else: # Different as
@@ -78,17 +77,33 @@ def configure_one_interface(r_a: Router, r_b: Router, interface_a: str, addr_a:s
             
             prefix_a = str(ipaddress.IPv6Interface(addr_a).network)
 
-        r_a.append_cmds(commands.bgp_advertise_network(r_a.asn, prefix_a, ip_version))
 
-        r_a.append_cmds(commands.e_bgp_neighbor_config(r_a.asn, addr_b_without_mask, r_b.asn, ip_version))
 
-        r_a.append_cmds(commands.send_community(r_a.asn, addr_b_without_mask, ip_version))
+        address_family: str = f"{ip_version.value} unicast"
+
+        # check if other router is in a vrf
+        for interface in r_a.interfaces.values():
+            if interface.vrf and interface.neighbor_router == r_b:
+                address_family = f"{ip_version.value} vrf {interface.vrf}"
+                break
+        
+        r_a.append_cmds(commands.e_bgp_neighbor_config(r_a.asn, addr_b_without_mask, r_b.asn, address_family))
+        # r_a.append_cmds(commands.bgp_advertise_network(r_a.asn, prefix_a, address_family)) Not useful with redistribute ospf
+        r_a.append_cmds(commands.send_community(r_a.asn, addr_b_without_mask, address_family))
+
+
+        if r_a.a_s.internal_protocol == "ospf":
+            process_id = r_a.id
+        else:
+            process_id = "RIP_AS"
+
+        r_a.append_cmds(commands.redistribute_opsf(r_a.a_s.internal_protocol, process_id, "bgp", r_a.asn))
 
         ### Find the corresponding relationship for this inter-as link
         # Loops through the relationship to see which one has the router
         # And then add the router to the relationship class to find it more easily after
         for rel in r_a.a_s.relationships:
-            if rel.other.routers.get(r_b.name) is not None: # The other AS has the other router so it is the AS correponsing with the relationship
+            if rel.other.routers.get(r_b.id) is not None: # The other AS has the other router so it is the AS correponsing with the relationship
                 rel.links.append(RelationshipLink(
                     r_a,
                     addr_a,

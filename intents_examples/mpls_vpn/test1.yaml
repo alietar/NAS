@@ -1,0 +1,88 @@
+gns:
+  enable: true
+  host: 127.0.0.1
+  port: 3080
+  project_name: Test 1
+  create_routers: true
+  create_links: true
+  arrange_automagically: true
+  auto_fetch_router_infos: true
+
+project:
+  write: false
+  ip_version: ipv4
+  auto_create_address:
+    physical: true
+    Loopback: true
+
+as:
+  - asn: 1
+    internal_protocol: OSPF
+    bgp_deployement: border
+
+  - asn: 2
+    internal_protocol: OSPF
+    bgp_deployement: every
+
+routers:
+  - name: A1
+    asn: 1
+    id: 1
+  - name: A2
+    asn: 1
+    id: 2
+  - name: A3
+    asn: 1
+    id: 3
+  - name: A4
+    asn: 1
+    id: 4
+  
+  - name: B1
+    asn: 2
+    id: 5
+  - name: B2
+    asn: 2
+    id: 6
+  - name: B3
+    asn: 2
+    id: 7
+  - name: B4
+    asn: 2
+    id: 8
+
+links:
+  - from: 1
+    to: 2
+    interface_from: g1/0
+    interface_to: g1/0
+  - from: 1
+    to: 3
+    interface_from: g2/0
+    interface_to: g1/0
+  - from: 2
+    to: 4
+    interface_from: g2/0
+    interface_to: g1/0
+  - from: 3
+    to: 4
+    interface_from: g2/0
+    interface_to: g2/0
+  
+  
+  - from: 5
+    to: 6
+    interface_from: g1/0
+    interface_to: g1/0
+  - from: 5
+    to: 7
+    interface_from: g2/0
+    interface_to: g1/0
+  - from: 6
+    to: 8
+    interface_from: g2/0
+    interface_to: g1/0
+  - from: 7
+    to: 8
+    interface_from: g2/0
+    interface_to: g2/0

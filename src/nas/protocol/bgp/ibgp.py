@@ -14,7 +14,7 @@ def ibgp_config(routers: dict[int, Router], as_list: dict[int, AS], intents, gns
             r.append_cmds(commands.enter_bgp_config(asn))
 
             for id_other, r_other in a_s.routers.items():
-                if no_bgp or id_other == id:
+                if (a_s.bgp_deployement == "border" and not r_other.is_border) or id_other == id:
                     continue
 
                 if ip_version == IPVersion.IPV4:
@@ -22,15 +22,33 @@ def ibgp_config(routers: dict[int, Router], as_list: dict[int, AS], intents, gns
                 else:
                     other_ip_without_mask = remove_ipv6_mask(r_other.interfaces["Loopback0"].addrs[0])
 
+                address_family: str = ip_version.value
+                address_family += " unicast"
+
                 r.append_cmds(commands.i_bgp_neighbor(
                     other_ip_without_mask,
                     asn,
                     "Loopback0",
-                    ip_version,
+                    address_family,
                     # Next hop self is necessary for the internal routers to
                     # know where to route their packets going outside the AS
                     next_hope_self=r.is_border
                 ))
+
+                # Add the iBGP border router in the vref address family
+                for interface in r.interfaces.values():
+                    for other_interface in r_other.interfaces.values():
+                        if interface.vrf and interface.vrf == other_interface.vrf:
+                            address_family = f"vpnv4"
+
+                            r.append_cmds(commands.bgp_address_family(
+                                other_ip_without_mask,
+                                address_family,
+                                # Next hop self is necessary for the internal routers to
+                                # know where to route their packets going outside the AS
+                                next_hope_self=False
+                                # next_hope_self=r.is_border
+                            ))
 
             r.append_cmd("exit")
 
@@ -38,12 +56,15 @@ def ibgp_config(routers: dict[int, Router], as_list: dict[int, AS], intents, gns
             if not r.is_border:
                 continue
 
-            if a_s.internal_protocol == "ospf":
-                process_id = r.id
-            else:
-                process_id = "RIP_AS"
+            if a_s.redistribute_internal:
+                if a_s.internal_protocol == "ospf":
+                    process_id = r.id
+                else:
+                    process_id = "RIP_AS"
+                
+                address_family = ip_version.value + " unicast"
 
-            r.append_cmds(commands.redistribute_iBGP(asn, a_s.internal_protocol, process_id, ip_version))
+                r.append_cmds(commands.redistribute_iBGP(asn, a_s.internal_protocol, process_id, address_family))
 
         ### Route tagging
         # rel means a relationship

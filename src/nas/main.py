@@ -36,17 +36,42 @@ def main(intentfile, dry_run, show_commands):
     for router in routers.values():
         router.append_cmds(commands.base_router_config(router.name))
         router.append_cmds(commands.enable_community()) # Mandatory for communities
+    
+    
+    for link in intents["links"]:
+        r_a: Router = routers[link["from"]]
+        r_b: Router = routers[link["to"]]
+        interface_a: str = link["interface_from"]
+        interface_b: str = link["interface_to"]
+
+        r_a.interfaces[interface_a] = Interface(interface_a)
+        r_b.interfaces[interface_b] = Interface(interface_b)
+    
+        r_a.interfaces[interface_a].neighbor_router = r_b
+        r_b.interfaces[interface_b].neighbor_router = r_a
+    
+        if r_a.asn == r_b.asn: # Same as
+            r_a.interfaces[interface_a].is_internal = True
+            r_b.interfaces[interface_b].is_internal = True
+
+        else: # Different as
+            r_a.is_border = True
+            r_b.is_border = True
+    
+    apply_vpn(routers, as_list, intents)
 
     ## Interface, opsf, rip and eBGP, setup
     link_config(routers, as_list, intents, gns_config, ip_version)
 
     ## Enable BGP on every router
-    for name, r in routers.items():
+    for r in routers.values():
+        if r.a_s.bgp_deployement == "border" and not r.is_border:
+            continue
+
         r.append_cmds(commands.bgp_config(r.id, r.asn, ip_version))
 
     configure_loopbacks(routers, intents, ip_version)
     ibgp_config(routers, as_list, intents, gns_config, ip_version)
-    apply_vpn(routers, as_list, intents)
 
  
     if show_commands:
@@ -64,7 +89,7 @@ def main(intentfile, dry_run, show_commands):
             for router in routers.values():
                 ## Router creation
                 if gns_config.get("create_routers", False):
-                    gns_utils.create_router(router, g, intents, gns_config.get("arrange"))
+                    gns_utils.create_router(router, g, intents, gns_config.get("arrange", False))
 
                 ## Ports
                 if gns_config.get("auto_fetch_router_infos", False):
@@ -73,12 +98,12 @@ def main(intentfile, dry_run, show_commands):
 
             ## Links creation
             if gns_config.get("create_links", False):
-                gns_utils.create_links(intents, g)
+                gns_utils.create_links(intents, g, routers)
 
             ## Start all router on GNS
             with console.status("[blue] Starting routers (GNS)...") as status:
-                for name in routers.keys():
-                    g.routers[name].start()
+                for r in routers.values():
+                    g.routers[r.name].start()
 
             log.success("Started routers (GNS)")
 

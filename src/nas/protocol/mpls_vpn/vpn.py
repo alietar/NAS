@@ -16,7 +16,8 @@ def apply_vpn(routers: dict[int, Router], as_list: dict[int, AS], intents) -> No
 
         for router in provider_as.routers.values():
             for interface in router.interfaces.values():
-                if len(interface.addrs) == 0 or interface.is_loopback:
+                if interface.is_loopback:
+                # if len(interface.addrs) == 0 or interface.is_loopback:
                     continue
 
                 # Activate mpls on every Loopback interface of the AS
@@ -26,6 +27,8 @@ def apply_vpn(routers: dict[int, Router], as_list: dict[int, AS], intents) -> No
                 # Enable vrf on external interface on PE router
                 else:
                     if router.is_border and interface.neighbor_router.asn in client_asn_list:
+                        interface.vrf = client_name
+
                         if not client_id_name_pair.get(client_name):
                             client_id_name_pair[client_name] = len(client_id_name_pair) + 1
                         
@@ -34,8 +37,8 @@ def apply_vpn(routers: dict[int, Router], as_list: dict[int, AS], intents) -> No
                         route_distinguisher = f"{provider_as.asn}:{client_id}"
                         route_target = f"{provider_as.asn}:{client_id*100}"
 
-                        router.append_cmds(vrf_interface_forwarding_config(interface.name, client_name))
                         router.append_cmds(vrf_config(client_name, route_distinguisher, route_target))
+                        router.append_cmds(vrf_interface_forwarding_config(interface.name, client_name))
 
 
             # Enable ldp

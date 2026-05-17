@@ -64,7 +64,7 @@ def loopback_config(address, protocol, process, ip_version: IPVersion):
     return cmds
 
 
-def rip_config(address, interface, name, ip_version: IPVersion):
+def rip_config(address, interface, id, ip_version: IPVersion):
     cmds = []
 
     ##### WARNING!! Did not implement RIP in IPv4
@@ -86,9 +86,9 @@ def rip_config(address, interface, name, ip_version: IPVersion):
     return cmds 
 
 
-def ospf_config(address, interface, name, area_nb, ip_version: IPVersion, cost=None):
+def ospf_config(address, interface, id, area_nb, ip_version: IPVersion, cost=None):
     cmds = []
-    process_id = int(name[1:])
+    process_id = id
 
     if ip_version == IPVersion.IPV4:
         cmds += [ f"router ospf {process_id}" ]
@@ -122,11 +122,24 @@ def enter_bgp_config(asn):
     return [ f"router bgp {asn}" ]
 
 
-def i_bgp_neighbor(other_ip, asn, loopback_interface_name, ip_version: IPVersion, next_hope_self=False):
+def i_bgp_neighbor(other_ip, asn, loopback_interface_name, address_family: str, next_hope_self=False):
     cmds = [
         f"neighbor {other_ip} remote-as {asn}",
         f"neighbor {other_ip} update-source {loopback_interface_name}",
-        f"address-family {ip_version.value} unicast",
+        f"address-family {address_family}",
+        f"neighbor {other_ip} activate",
+        f"neighbor {other_ip} send-community both"]
+    
+    if next_hope_self:
+        cmds.append(f"neighbor {other_ip} next-hop-self")
+
+    cmds += ["exit-address-family"]
+
+    return cmds
+
+def bgp_address_family(other_ip, address_family: str, next_hope_self=False):
+    cmds = [
+        f"address-family {address_family}",
         f"neighbor {other_ip} activate",
         f"neighbor {other_ip} send-community both"]
     
@@ -151,27 +164,27 @@ def bgp_config(router_id, as_nb, ip_version: IPVersion):
     return cmds
 
 
-def bgp_advertise_network(as_nb, prefix, ip_version: IPVersion):
+def bgp_advertise_network(as_nb, prefix, address_family: str):
     return [
         f"router bgp {as_nb}",
-        f"address-family {ip_version.value} unicast",
+        f"address-family {address_family}",
         f"network {prefix}",
         "exit-address-family",
         "exit",
     ]
 
 
-def e_bgp_neighbor_config(as_nb, neighbor_ip, neighbor_as_nb, ip_version: IPVersion):
+def e_bgp_neighbor_config(as_nb, neighbor_ip, neighbor_as_nb, address_family: str):
     return [
         f"router bgp {as_nb}", # Enters BGP configuration
+        f"address-family {address_family}",
         f"neighbor {neighbor_ip} remote-as {neighbor_as_nb}", # Enters neighbor config
-        f"address-family {ip_version.value} unicast",
         f"neighbor {neighbor_ip} activate",
         f"exit-address-family", ### !!! Maybe is useless because of the end command
         f"exit"]
 
 
-def redistribute_iBGP(as_number, protocol, process_id, ip_version: IPVersion): ## à faire que sur les routeurs de bordure pour annoncer les routes à BGP
+def redistribute_iBGP(as_number, protocol, process_id, address_family: str): ## à faire que sur les routeurs de bordure pour annoncer les routes à BGP
     """
     Redistribue un IGP (OSPF ou RIP) dans BGP 
     """
@@ -179,20 +192,32 @@ def redistribute_iBGP(as_number, protocol, process_id, ip_version: IPVersion): #
 
     return [
         f"router bgp {as_number}",
-        f"address-family {ip_version.value} unicast",
+        f"address-family {address_family}",
         f"redistribute {protocol} {process_id}",
         "exit-address-family",
         "exit"
     ]
 
+def redistribute_opsf(protocol, process_id, redistributed_protocol, asn): ## à faire que sur les routeurs de bordure pour annoncer les routes à BGP
+    """
+    Redistribue un IGP (OSPF ou RIP) dans BGP 
+    """
+    protocol = protocol.lower()
 
-def next_hop_self(as_number, neighbors, ip_version: IPVersion):
+    return [
+        f"router {protocol} {process_id}",
+        f"redistribute {redistributed_protocol} {asn} subnets",
+        "exit"
+    ]
+
+
+def next_hop_self(as_number, neighbors, address_family: str):
     if isinstance(neighbors, str):
         neighbors = [neighbors]
 
     cmds = [
         f"router bgp {as_number}",
-        f"address-family {ip_version.value} unicast",
+        f"address-family {address_family}",
     ]
     for ip in neighbors:
         cmds.append(f"neighbor {ip} next-hop-self")
@@ -310,10 +335,10 @@ def create_community_list(name, community, permit=True):
     ]
 
 
-def send_community(as_nb, neighbor_addr, ip_version: IPVersion):
+def send_community(as_nb, neighbor_addr, address_family: str):
     return [
         f"router bgp {as_nb}",
-        f"address-family {ip_version.value} unicast",
+        f"address-family {address_family}",
         f"neighbor {neighbor_addr} send-community both",
         "exit-address-family",
         "exit",

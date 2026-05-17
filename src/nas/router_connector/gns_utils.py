@@ -18,13 +18,17 @@ def open_gns(gns_config):
     return g
 
 
-def create_links(intents, g):
+def create_links(intents, g, routers):
     for link in intents["links"]:
-        log.info(f"Adding link from {link["interface_from"]} on {link["from"]} to {link["interface_to"]} on {link["to"]} (GNS)")
         try:
-            g.create_link(link["from"], # Adding link inside GNS
+            r_from = routers[link["from"]].name
+            r_to = routers[link["to"]].name
+        
+            log.info(f"Adding link from {link["interface_from"]} on {r_from} to {link["interface_to"]} on {r_to} (GNS)")
+
+            g.create_link(r_from, # Adding link inside GNS
                         link["interface_from"],
-                        link["to"],
+                        r_to,
                         link["interface_to"])
         except Exception as exp:
             log.fatal_error(f"Cannot create link from {link["interface_from"]} on {link["from"]} to {link["interface_to"]} on {link["to"]}, check if the interfaces are not used twice !!", exp)
@@ -37,7 +41,7 @@ def fetch_ports(router: ip_utils.Router, g):
     return g.get_router_port(router.name)
 
 
-def create_router(router, g, intents={}, arrange: bool|None = False):
+def create_router(router, g, intents={}, arrange: bool = False):
     name = router.name
 
     try:

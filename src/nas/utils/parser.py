@@ -85,7 +85,8 @@ def parse_routers_as(intents: dict[str, typing.Any]):
         as_list[asn] = AS(
             asn,
             as_data["internal_protocol"].lower(),
-            as_data["bgp_deployement"].lower()
+            as_data["bgp_deployement"].lower(),
+            as_data["redistribute_internal"]
         )
     
     # Relationships with other ASs

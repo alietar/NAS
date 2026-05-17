@@ -2,75 +2,84 @@ gns:
   enable: true
   host: 127.0.0.1
   port: 3080
-  project_name: NAS IPv4 MPLS VPN
+  project_name: Test 2
   create_routers: true
   create_links: true
-  arrange_automagically: true
+  arrange: true
   auto_fetch_router_infos: true
 
 project:
   write: false
   ip_version: ipv4
   auto_create_address:
-    physical: true
+    physical: false 
     Loopback: true
 
 as:
   - asn: 1
     internal_protocol: OSPF
     bgp_deployement: border
+    redistribute_internal: true
 
   - asn: 2
     internal_protocol: OSPF
     bgp_deployement: border
+    redistribute_internal: true
 
   - asn: 3
     internal_protocol: OSPF
     bgp_deployement: every
+    redistribute_internal: false
 
   - asn: 4
     internal_protocol: OSPF
     bgp_deployement: border
+    redistribute_internal: true
 
   - asn: 5
     internal_protocol: OSPF
     bgp_deployement: border
+    redistribute_internal: true
 
 routers:
-  - name: A1
+  - name: C1_Client_1
     asn: 1
     id: 1
-  - name: A2
+  - name: CE1_Client_1
     asn: 1
     id: 2
-  - name: B3
+
+  - name: C1_Client_2
     asn: 2
     id: 3
-  - name: B4
+  - name: CE1_Client_2
     asn: 2
     id: 4
-  - name: Z5
+
+  - name: PE1
     asn: 3
     id: 5
-  - name: Z6
+  - name: P1
     asn: 3
     id: 6
-  - name: Z7
+  - name: P2
     asn: 3
     id: 7
-  - name: Z8
+  - name: PE2
     asn: 3
     id: 8
-  - name: C9
+
+  - name: C2_Client_1
     asn: 4
     id: 9
-  - name: C10
+  - name: CE2_Client_1
     asn: 4
     id: 10
-  - name: D11
+
+  - name: C2_Client_2
     asn: 5
     id: 11
-  - name: D12
+  - name: CE2_Client_2
     asn: 5
     id: 12
 
@@ -121,9 +130,24 @@ links:
     interface_to: g2/0
 
 vpn:
-  - client_name: client2
+  - client_name: client1
     client_asn_list: [1, 4]
     provider_asn: 3
-  - client_name: client1
+  - client_name: client2
     client_asn_list: [2, 5]
     provider_asn: 3
+
+address_pool:
+  physical:
+    - ["1.1.1.1 255.255.255.0", "1.1.1.2 255.255.255.0"]
+    - ["2.2.2.1 255.255.255.0", "2.2.2.2 255.255.255.0"]
+    - ["3.3.3.1 255.255.255.0", "3.3.3.2 255.255.255.0"]
+    - ["4.4.4.1 255.255.255.0", "4.4.4.2 255.255.255.0"]
+    - ["5.5.5.1 255.255.255.0", "5.5.5.2 255.255.255.0"]
+    - ["6.6.6.1 255.255.255.0", "6.6.6.2 255.255.255.0"]
+    - ["7.7.7.1 255.255.255.0", "7.7.7.2 255.255.255.0"]
+    - ["8.8.8.1 255.255.255.0", "8.8.8.2 255.255.255.0"]
+    - ["9.9.9.1 255.255.255.0", "9.9.9.2 255.255.255.0"]
+    - ["11.11.11.1 255.255.255.0", "11.11.11.2 255.255.255.0"]
+    - ["12.12.12.1 255.255.255.0", "12.12.12.2 255.255.255.0"]
+    - ["13.13.13.1 255.255.255.0", "13.13.13.2 255.255.255.0"]
