@@ -16,19 +16,22 @@ def link_config(routers: dict[int, Router], as_list: dict[int, AS], intents, gns
         router_b: Router = routers[link["to"]]
         interface_a: str = link["interface_from"]
         interface_b: str = link["interface_to"]
+        addr_a: str = link.get("ip_from")
+        addr_b: str = link.get("ip_to")
         
         cost_from, cost_to = read_ospf_cost(link)
 
         # Configure the interface for both routers of the link
-        if cond_creation_address:
-            addr_a, addr_b = ip_utils.compute_ip_address(router_a, router_b, ip_version)
-        else:
-            addr_a, addr_b = intents["address_pool"]["physical"][cpt_link][0], intents["address_pool"]["physical"][cpt_link][1]
+        if not addr_a or not addr_b:
+            if cond_creation_address:
+                addr_a, addr_b = ip_utils.compute_ip_address(router_a, router_b, ip_version)
+            else:
+                addr_a, addr_b = intents["address_pool"]["physical"][cpt_link][0], intents["address_pool"]["physical"][cpt_link][1]
+                cpt_link +=1
 
         configure_one_interface(router_a, router_b, interface_a, addr_a, addr_b, ip_version, cost_from)
         configure_one_interface(router_b, router_a, interface_b, addr_b, addr_a, ip_version, cost_to)
         
-        cpt_link +=1
 
 
 def read_ospf_cost(link):

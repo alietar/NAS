@@ -25,7 +25,7 @@ Le but du projet NAS est de développer un outil d'IaC ([Infrastructure as Code]
 
 Notre outil permet de créer rapidement et de façon fiable des réseaux complexes comprenant plusieurs AS avec des relations client-fournisseur ou peer-to-peer et des vpn, ainsi que des tunnels MPLS VPN tout en gardant une grande flexibilité.
 
-Concrètement, la configuration du réseau est décrite de façon déléclarative dans un fichier d'intention en json et notre programme traduit cela en commandes impératives rentrées automatiquement dans les routeurs.
+Concrètement, la configuration du réseau est décrite de façon déléclarative dans un fichier d'intention en yaml et notre programme traduit cela en commandes impératives rentrées automatiquement dans les routeurs.
 
 # Fonctionnalités
 
@@ -39,7 +39,7 @@ Concrètement, la configuration du réseau est décrite de façon déléclarativ
 - RIP ou OSPF en protocole de routage au sein d'une AS
 - OPSF Metrics
 - Relations entre les AS (client-fournisseur, peer-to-peer) grâce aux communty policies
-- VPN : MPLS, LDP, VRF [pas entièrement implémenté]
+- VPN : MPLS, LDP, VRF
 
 # Installation
 
@@ -47,8 +47,8 @@ Concrètement, la configuration du réseau est décrite de façon déléclarativ
 
 - Python 3
 - Pip
-- GNS3
-- Image du routeur Cisco 7200 avec n interfaces PA-GE installées dans les slots
+- GNS3 et image du routeur Cisco 7200 avec 4 interfaces PA-GE installées dans les slots
+- (uv, recommandé)
 
 ### Dépendances
 
@@ -84,8 +84,7 @@ pip3 install -r ./requirements.txt
 <summary>Ou avec uv</summary>
 
 ```bash
-uv init
-uv add -r requirements.txt  
+uv sync
 ```
 
 </details>
@@ -93,16 +92,16 @@ uv add -r requirements.txt
 
 # Usage
 
-En l’absence de paramètres, le script choisit le fichier d'intention d'exemple : `intents/intent_2_AS_OSPF_RIP.json`.
+En l’absence de paramètres, le script choisit le fichier d'intention d'exemple : `intents_examples/two_as.yaml`.
 
 Il est possible de préciser le chemin vers le fichier d'intention en fin de commande
 
 ```bash
 # Syntaxe
-python main.py <intent_file_path>
+python -m nas <intent_file_path>
 
 # Exemple
-python main.py intents/intent_2_AS_OSPF.json
+python -m nas intents_examples/mpls_vpn.yaml
 ```
 
 <details>
@@ -110,10 +109,10 @@ python main.py intents/intent_2_AS_OSPF.json
 
 ```bash
 # Syntaxe
-uv run main.py <intent_file_path>
+uv run nas <intent_file_path>
 
 # Exemple
-uv run main.py intents/intent_2_AS_OSPF.json
+uv run nas intents_examples/mpls_vpn.yaml
 ```
 
 </details>
@@ -125,21 +124,22 @@ Sauf précisé, toutes les propriétés sont obligatoires.
 
 ## Structure Principale (Racine)
 
-Ce tableau décrit les clés de haut niveau présentes à la racine du fichier JSON.
+Ce tableau décrit les clés de haut niveau présentes à la racine du fichier yaml.
 
 | Nom propriété | Type | Description |
 | - | - | - |
 | [gns_auto_config](#gns_auto_config) | object | Configuration globale pour l'automatisation GNS3 |
+| [project](#project) | array | Configuration général du réseau et des routeurs |
 | [as](#as) | array | Liste des systèmes autonomes et de leurs protocoles |
 | [routers](#routers) | array | Inventaire des routeurs du réseau |
 | [links](#links) | array | Topologie physique (câblage) |
 | [address_pool](#address_pool) | object | (Optionnel) Pools d'adresses IP manuelles (si la génération auto est désactivée) |
 | [client_provider_relationships](#client_provider_relationships) | array | (Optionnel) Définition des relations BGP Client / Fournisseur |
 | [peer_to_peer_relationships](#peer_to_peer_relationships) | array | (Optionnel) Définition des relations BGP de Peering |
-| [community_constants](#community_constants) | object | Optionnel (Requis si relations BGP utilisées) Configuration des tags et préférences locales pour BGP | 
-| write | boolean | (Optionnel) Sauvegarde la config sur tous les routeurs |
+| [community_constants](#community_constants) | object | Optionnel (Requis si relations BGP utilisées) Configuration des tags et préférences locales pour BGP |
+| [vpn](#vpn) | object | (Optionnel) Configuration des vpn |
 
-## gns_auto_config
+## gns
 
 | Nom propriété | Type | Description | Valeur par défaut / Exemple |
 | - | - | - | - |
@@ -151,6 +151,13 @@ Ce tableau décrit les clés de haut niveau présentes à la racine du fichier J
 | create_links | boolean | (Optionnel) Création automatique des liens physiques entre routeurs | `false` |
 | arrange_automagically | (Optionnel) boolean | Tente d'organiser visuellement les nœuds automatiquement en groupant par AS | `false` |
 | auto_fetch_router_infos | boolean | (Optionnel) Récupère automatiquement les IDs et ports des routeurs via l'API | `false` |
+
+## project
+
+| Nom propriété | Type | Description | Valeur par défaut / Exemple |
+| - | - | - | - |
+| write | boolean | (Optionnel) Sauvegarde la config sur tous les routeurs | false |
+| ip_version | string | Choix de la version d'IP utilisée | `"ipv4"` ou `"ipv6"` |
 | auto_create_address | object | (Optionnel) Configuration de la génération automatique d'IP (voir tableau suivant) | `{ "physical": true, "Loopback": true }` |
 
 ### auto_create_address (Sous-objet de gns_auto_config)
@@ -166,6 +173,8 @@ Ce tableau décrit les clés de haut niveau présentes à la racine du fichier J
 | - | - | - | - |
 | asn | integer | Numéro de l'AS | `1` |
 | internal_protocol | string | Protocole de routage interne utilisé (IGP) | `"OSPF"` ou `"RIP"` |
+| redistribute_internal | boolean | Active ou non la redistribution des routes de l'IGP dans BGP | false |
+| bgp_deployement | string | Mettre bgp uniquement sur les routeurs de bordures ou sur tous les routeurs | `"border"` ou `"every"` |
 
 ## routers
 
@@ -185,6 +194,8 @@ Ce tableau décrit les clés de haut niveau présentes à la racine du fichier J
 | to | string | Nom du routeur destination | `"R2"` |
 | interface_from | string | Interface de départ sur le routeur source | `"g1/0"` |
 | interface_to | string | Interface d'arrivée sur le routeur destination | `"g1/0"` |
+| ip_from | string | (Optionnel) IP du routeur source | `"50.50.50.1 255.255.255.0"` |
+| ip_to | string | (Optionnel) IP du routeur destination | `"50.50.50.2 255.255.255.0"` |
 | ospf_cost | object | (Optionnel même en protocole OPSF) Surcharge le coût OSPF par défaut (voir tableau suivant) | `{ "from": 10, "to": 10 }` |
 
 ### ospf_cost (Sous-objet de links)
@@ -227,3 +238,11 @@ Ce tableau décrit les clés de haut niveau présentes à la racine du fichier J
 | route_map_tag | string | Tag utilisé pour marquer les routes dans les Route-Maps | `"TAG_PROVIDER"` |
 | community_list_name | string | Nom de la liste de communauté | `"PROVIDER"` |
 | local_pref | integer | Valeur de la "Local Preference" à appliquer | `300` |
+
+## vpn
+
+| Nom propriété | Type | Description | Exemple |
+| - | - | - | - |
+| client_name | string | Nom du client (dans les vrf) | `client1` |
+| client_asn_list | List[int] | asn du client | [1, 4] |
+| provider_asn | int | asn du provider | 3 |
