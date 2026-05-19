@@ -69,17 +69,17 @@ routers:
     asn: 3
     id: 8
 
-  - name: C2_Client_1
+  - name: CE2_Client_1
     asn: 4
     id: 9
-  - name: CE2_Client_1
+  - name: C2_Client_1
     asn: 4
     id: 10
 
-  - name: C2_Client_2
+  - name: CE2_Client_2
     asn: 5
     id: 11
-  - name: CE2_Client_2
+  - name: C2_Client_2
     asn: 5
     id: 12
 
@@ -88,46 +88,60 @@ links:
     to: 2
     interface_from: g1/0
     interface_to: g2/0
+
   - from: 2
     to: 5
     interface_from: g1/0
     interface_to: g2/0
+
   - from: 3
     to: 4
     interface_from: g1/0
     interface_to: g2/0
+
   - from: 4
     to: 5
     interface_from: g1/0
     interface_to: g3/0
+
   - from: 5
     to: 6
     interface_from: g1/0
     interface_to: g2/0
+
   - from: 6
     to: 7
     interface_from: g1/0
     interface_to: g2/0
+
   - from: 7
     to: 8
     interface_from: g1/0
     interface_to: g1/0
+
   - from: 9
     to: 8
     interface_from: g1/0
     interface_to: g2/0
+
   - from: 10
     to: 9
     interface_from: g1/0
     interface_to: g2/0
+    ip_from: "50.50.50.1 255.255.255.0"
+    ip_to: "50.50.50.2 255.255.255.0"
+
   - from: 11
     to: 8
     interface_from: g1/0
     interface_to: g3/0
+
   - from: 12
     to: 11
     interface_from: g1/0
     interface_to: g2/0
+    ip_from: "50.50.50.1 255.255.255.0"
+    ip_to: "50.50.50.2 255.255.255.0"
 
 vpn:
   - client_name: client1
