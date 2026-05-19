@@ -21,7 +21,7 @@ from .utils import parser
 
 ### CLI Arguments
 @click.command()
-@click.argument('intentfile', type=click.Path(exists=True, readable=True), default="./intents/intent_2_AS_OSPF_RIP.json")
+@click.argument('intentfile', type=click.Path(exists=True, readable=True), default="./intents_examples/two_as.yaml")
 @click.option('-d', '--dry-run', is_flag=True)
 @click.option('-s', '--show-commands', is_flag=True)
 def main(intentfile, dry_run, show_commands):
